@@ -13,11 +13,12 @@ bin-dir = "{ bin }-{ target }{ format }"
 
 [features]
 util = [ "structopt", "driver-pal", "driver-pal/hal", "simplelog", "humantime" ] 
-default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
+#default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
+default = []
 
 [dependencies]
 radio = "0.11.0"
-embedded-hal = "1.0.0-alpha.7"
+embedded-hal = { version = "0.2.7", features = ["unproven"]}
 libc = "0.2"
 log = { version = "0.4" }
 bitflags = "1.0"
