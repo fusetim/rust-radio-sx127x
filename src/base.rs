@@ -6,7 +6,7 @@
 use core::fmt::Debug;
 
 use embedded_hal::blocking::delay::{DelayUs, DelayMs};
-use embedded_hal::digital::v2::{OutputPin, InputPin};
+use embedded_hal::digital::v2::OutputPin;
 use embedded_hal::blocking::spi::{Transactional, Transfer, Write};
 
 /// HAL trait for radio interaction, may be generic over SPI or UART connections
@@ -126,24 +126,20 @@ impl <T: Transfer<u8, Error = E> + Write<u8, Error = E> + Transactional<u8, Erro
 }
 
 /// Spi base object defined interface for interacting with radio via SPI
-pub struct Base <Spi: SpiBase, Cs: OutputPin, Busy: InputPin, Ready: InputPin, Sdn: OutputPin, Delay: DelayUs<u32> + DelayMs<u32>> {
+pub struct Base <Spi: SpiBase, Cs: OutputPin, Sdn: OutputPin, Delay: DelayUs<u32> + DelayMs<u32>> {
     pub spi: Spi,
     pub cs: Cs,
-    pub busy: Busy,
-    pub ready: Ready,
     pub sdn: Sdn,
     pub delay: Delay,
 }
 
 /// Implement HAL for base object
-impl<Spi, Cs, Busy, Ready, Sdn, PinError, Delay> Hal for Base<Spi, Cs, Busy, Ready, Sdn, Delay>
+impl<Spi, Cs, Sdn, PinError, Delay> Hal for Base<Spi, Cs, Sdn, Delay>
 where
     Spi: SpiBase,
     <Spi as SpiBase>::Error: Debug + 'static,
     
     Cs: OutputPin<Error=PinError>,
-    Busy: InputPin<Error=PinError>,
-    Ready: InputPin<Error=PinError>,
     Sdn: OutputPin<Error=PinError>,
     PinError: Debug + 'static,
 

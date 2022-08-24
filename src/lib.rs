@@ -17,7 +17,7 @@ use log::{trace, debug, warn};
 
 use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
 use embedded_hal::blocking::delay::{DelayUs,DelayMs};
-use embedded_hal::digital::v2::{InputPin, OutputPin};
+use embedded_hal::digital::v2::OutputPin;
 
 use radio::{Power as _, State as _};
 
@@ -97,19 +97,17 @@ impl Default for Settings {
     }
 }
 
-pub type Sx127xSpi<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay> = Sx127x<base::Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>>;
+pub type Sx127xSpi<Spi, CsPin, SdnPin, Delay> = Sx127x<base::Base<Spi, CsPin, SdnPin, Delay>>;
 
-impl<Spi, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay>
+impl<Spi, CsPin, SdnPin, PinError, Delay>
     Sx127x<
-        Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>,
+        Base<Spi, CsPin, SdnPin, Delay>,
     >
 where
     Spi: SpiBase,
     <Spi as SpiBase>::Error: Debug,
 
     CsPin: OutputPin<Error = PinError>,
-    BusyPin: InputPin<Error = PinError>,
-    ReadyPin: InputPin<Error = PinError>,
     SdnPin: OutputPin<Error = PinError>,
     PinError: Debug,
 
@@ -120,14 +118,12 @@ where
     pub fn spi(
         spi: Spi,
         cs: CsPin,
-        busy: BusyPin,
-        ready: ReadyPin,
         sdn: SdnPin,
         delay: Delay,
         config: &Config,
     ) -> Result<Self, Error<HalError<<Spi as SpiBase>::Error, PinError, () /* <Delay as DelayUs>::Error*/>>> {
-        // Create SpiWrapper over spi/cs/busy/ready/reset
-        let base = Base{spi, cs, sdn, busy, ready, delay};
+        // Create SpiWrapper over spi/cs/reset
+        let base = Base{spi, cs, sdn, delay};
 
         // Create instance with new hal
         Self::new(base, config)
@@ -414,7 +410,7 @@ where
 //    type Error = Error<<Hal as base::Hal>::Error>;
 
     fn delay_us(&mut self, t: u32) -> () {
-        self.hal.delay_us(t);
+        let _ignore = self.hal.delay_us(t); // Infalllble
     }
 }
 
@@ -425,7 +421,7 @@ where
 //    type Error = Error<<Hal as base::Hal>::Error>;
 
     fn delay_ms(&mut self, t: u32) -> () {
-        self.hal.delay_ms(t);
+        let _ignore = self.hal.delay_ms(t); // Infallible
     }
 }
 
