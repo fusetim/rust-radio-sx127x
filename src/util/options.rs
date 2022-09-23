@@ -1,7 +1,7 @@
+use driver_pal::hal::DeviceConfig;
 use humantime::Duration as HumanDuration;
 use simplelog::LevelFilter;
 use structopt::StructOpt;
-use driver_pal::hal::{DeviceConfig};
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx127x-util")]
@@ -10,7 +10,7 @@ pub struct Options {
     #[structopt(subcommand)]
     /// Subcommand to execute
     pub command: Command,
-    
+
     #[structopt(flatten)]
     pub spi_config: DeviceConfig,
 

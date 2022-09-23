@@ -29,13 +29,8 @@ where
         Operation::Receive(config) => {
             let mut buff = [0u8; 255];
 
-            do_receive(
-                radio,
-                &mut buff,
-                config.continuous,
-                *config.poll_interval,
-            )
-            .expect("Receive error");
+            do_receive(radio, &mut buff, config.continuous, *config.poll_interval)
+                .expect("Receive error");
         }
         Operation::Repeat(config) => {
             let mut buff = [0u8; 255];
@@ -52,8 +47,7 @@ where
         }
         Operation::Rssi(config) => {
             do_rssi(radio, config.continuous, *config.period).expect("RSSI error");
-        }
-        //_ => warn!("unsuppored command: {:?}", opts.command),
+        } //_ => warn!("unsuppored command: {:?}", opts.command),
     }
 
     Ok(())

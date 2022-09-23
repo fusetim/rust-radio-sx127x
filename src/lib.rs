@@ -8,23 +8,22 @@
 
 //#![no_std]
 
-
 use core::convert::TryFrom;
 use core::fmt::Debug;
 
-use base::{Base, SpiBase, HalError};
-use log::{trace, debug, warn};
+use base::{Base, HalError, SpiBase};
+use log::{debug, trace, warn};
 
-use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
-use embedded_hal::blocking::delay::{DelayUs,DelayMs};
+use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
 
 use radio::{Power as _, State as _};
 
 pub mod base;
 
 pub mod device;
-use device::{regs, Channel, Interrupts, Config, Modem, ModemMode, PaConfig, PacketInfo, State};
+use device::{regs, Channel, Config, Interrupts, Modem, ModemMode, PaConfig, PacketInfo, State};
 
 pub mod fsk;
 pub mod lora;
@@ -99,10 +98,7 @@ impl Default for Settings {
 
 pub type Sx127xSpi<Spi, CsPin, SdnPin, Delay> = Sx127x<base::Base<Spi, CsPin, SdnPin, Delay>>;
 
-impl<Spi, CsPin, SdnPin, PinError, Delay>
-    Sx127x<
-        Base<Spi, CsPin, SdnPin, Delay>,
-    >
+impl<Spi, CsPin, SdnPin, PinError, Delay> Sx127x<Base<Spi, CsPin, SdnPin, Delay>>
 where
     Spi: SpiBase,
     <Spi as SpiBase>::Error: Debug,
@@ -121,9 +117,17 @@ where
         sdn: SdnPin,
         delay: Delay,
         config: &Config,
-    ) -> Result<Self, Error<HalError<<Spi as SpiBase>::Error, PinError, () /* <Delay as DelayUs>::Error*/>>> {
+    ) -> Result<
+        Self,
+        Error<HalError<<Spi as SpiBase>::Error, PinError, () /* <Delay as DelayUs>::Error*/>>,
+    > {
         // Create SpiWrapper over spi/cs/reset
-        let base = Base{spi, cs, sdn, delay};
+        let base = Base {
+            spi,
+            cs,
+            sdn,
+            delay,
+        };
 
         // Create instance with new hal
         Self::new(base, config)
@@ -195,7 +199,10 @@ where
             (Modem::FskOok(fsk_modem), Channel::FskOok(fsk_channel)) => {
                 self.fsk_configure(fsk_modem, fsk_channel)?;
             }
-            _ => panic!("Invalid configuration, mismatch between Modem ({:?}) and Channel ({:?}  modes", &config.modem, &config.channel),
+            _ => panic!(
+                "Invalid configuration, mismatch between Modem ({:?}) and Channel ({:?}  modes",
+                &config.modem, &config.channel
+            ),
         }
 
         // Configure power amplifier
@@ -259,9 +266,8 @@ where
             // Timeout eventually
             if ticks >= self.config.timeout_ms {
                 warn!("Set state timeout");
-                return Err(Error::Timeout)
+                return Err(Error::Timeout);
             }
-            
 
             self.hal.delay_ms(1)?;
             ticks += 1;
@@ -310,7 +316,10 @@ where
     }
 
     // Set the channel by frequency
-    pub(crate) fn set_frequency(&mut self, freq: u32) -> Result<(), Error<<Hal as base::Hal>::Error>> {
+    pub(crate) fn set_frequency(
+        &mut self,
+        freq: u32,
+    ) -> Result<(), Error<<Hal as base::Hal>::Error>> {
         let channel = self.freq_to_channel_index(freq);
 
         let outgoing = [
@@ -407,7 +416,7 @@ impl<Hal> DelayUs<u32> for Sx127x<Hal>
 where
     Hal: base::Hal,
 {
-//    type Error = Error<<Hal as base::Hal>::Error>;
+    //    type Error = Error<<Hal as base::Hal>::Error>;
 
     fn delay_us(&mut self, t: u32) -> () {
         let _ignore = self.hal.delay_us(t); // Infalllble
@@ -418,7 +427,7 @@ impl<Hal> DelayMs<u32> for Sx127x<Hal>
 where
     Hal: base::Hal,
 {
-//    type Error = Error<<Hal as base::Hal>::Error>;
+    //    type Error = Error<<Hal as base::Hal>::Error>;
 
     fn delay_ms(&mut self, t: u32) -> () {
         let _ignore = self.hal.delay_ms(t); // Infallible
@@ -436,17 +445,31 @@ where
     {
         let value = self.hal.read_reg(reg.into())?;
 
-        trace!("Read reg:   {:?} (0x{:02x}): 0x{:02x}", reg, reg.into(), value);
+        trace!(
+            "Read reg:   {:?} (0x{:02x}): 0x{:02x}",
+            reg,
+            reg.into(),
+            value
+        );
 
         Ok(value)
     }
 
     /// Write a u8 value to the specified register
-    pub fn write_reg<R>(&mut self, reg: R, value: u8) -> Result<(), Error<<Hal as base::Hal>::Error>>
+    pub fn write_reg<R>(
+        &mut self,
+        reg: R,
+        value: u8,
+    ) -> Result<(), Error<<Hal as base::Hal>::Error>>
     where
         R: Copy + Clone + Debug + Into<u8>,
     {
-        trace!("Write reg:  {:?} (0x{:02x}): 0x{:02x}", reg, reg.into(), value);
+        trace!(
+            "Write reg:  {:?} (0x{:02x}): 0x{:02x}",
+            reg,
+            reg.into(),
+            value
+        );
 
         self.hal.write_reg(reg.into(), value).map_err(Error::Hal)
     }
@@ -461,15 +484,23 @@ where
     where
         R: Copy + Clone + Debug + Into<u8>,
     {
-        trace!("Update reg: {:?} (0x{:02x}): 0x{:02x} (0x{:02x})", reg, reg.into(), value, mask);
+        trace!(
+            "Update reg: {:?} (0x{:02x}): 0x{:02x} (0x{:02x})",
+            reg,
+            reg.into(),
+            value,
+            mask
+        );
 
-        self.hal.update_reg(reg.into(), mask, value).map_err(Error::Hal)
+        self.hal
+            .update_reg(reg.into(), mask, value)
+            .map_err(Error::Hal)
     }
 }
 
 impl<Hal> radio::State for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type State = State;
     type Error = Error<<Hal as base::Hal>::Error>;
@@ -491,7 +522,7 @@ where
 
 impl<Hal> radio::Power for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Error = Error<<Hal as base::Hal>::Error>;
 
@@ -540,7 +571,7 @@ where
 
 impl<Hal> radio::Interrupts for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Irq = Interrupts;
     type Error = Error<<Hal as base::Hal>::Error>;
@@ -558,13 +589,16 @@ where
 
 impl<Hal> radio::Channel for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Channel = Channel;
     type Error = Error<<Hal as base::Hal>::Error>;
 
     /// Set the LoRa mode channel for future receive or transmit operations
-    fn set_channel(&mut self, channel: &Self::Channel) -> Result<(), Error<<Hal as base::Hal>::Error>> {
+    fn set_channel(
+        &mut self,
+        channel: &Self::Channel,
+    ) -> Result<(), Error<<Hal as base::Hal>::Error>> {
         match (self.mode, channel) {
             (Mode::LoRa, Channel::LoRa(channel)) => self.lora_set_channel(channel),
             (Mode::FskOok, Channel::FskOok(channel)) => self.fsk_set_channel(channel),
@@ -575,7 +609,7 @@ where
 
 impl<Hal> radio::Transmit for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Error = Error<<Hal as base::Hal>::Error>;
 
@@ -602,7 +636,7 @@ where
 
 impl<Hal> radio::Receive for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Info = PacketInfo;
     type Error = Error<<Hal as base::Hal>::Error>;
@@ -633,10 +667,7 @@ where
     ///
     /// This copies data into the provided slice, updates the provided information object,
     ///  and returns the number of bytes received on success
-    fn get_received(
-        &mut self,
-        buff: &mut [u8],
-    ) -> Result<(usize, Self::Info), Self::Error> {
+    fn get_received(&mut self, buff: &mut [u8]) -> Result<(usize, Self::Info), Self::Error> {
         match self.mode {
             Mode::LoRa => self.lora_get_received(buff),
             Mode::FskOok => self.fsk_get_received(buff),
@@ -647,7 +678,7 @@ where
 
 impl<Hal> radio::Rssi for Sx127x<Hal>
 where
-    Hal: base::Hal
+    Hal: base::Hal,
 {
     type Error = Error<<Hal as base::Hal>::Error>;
 

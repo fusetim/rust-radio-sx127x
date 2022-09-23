@@ -4,7 +4,7 @@
 //!
 //! Copyright 2019 Ryan Kurte
 
-use log::{trace, debug, warn, error};
+use log::{debug, error, trace, warn};
 
 use radio::State as _;
 
@@ -396,8 +396,9 @@ where
         let snr = self.read_reg(regs::LoRa::PKTSNRVALUE)? as i16;
 
         let (rssi, snr) = self.lora_process_rssi_snr(rssi, snr);
-        let info = PacketInfo{
-            rssi, snr: Some(snr),
+        let info = PacketInfo {
+            rssi,
+            snr: Some(snr),
         };
 
         trace!("FIFO RX {} bytes with fifo rx ptr: {}", n, r);

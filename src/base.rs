@@ -5,9 +5,9 @@
 
 use core::fmt::Debug;
 
-use embedded_hal::blocking::delay::{DelayUs, DelayMs};
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 use embedded_hal::blocking::spi::{Transactional, Transfer, Write};
+use embedded_hal::digital::v2::OutputPin;
 
 /// HAL trait for radio interaction, may be generic over SPI or UART connections
 pub trait Hal {
@@ -31,12 +31,8 @@ pub trait Hal {
     /// Write to radio with prefix
     fn prefix_write(&mut self, prefix: &[u8], data: &[u8]) -> Result<(), Self::Error>;
 
-   /// Read from the specified register
-   fn read_regs<'a>(
-    &mut self,
-    reg: u8,
-    data: &mut [u8],
-    ) -> Result<(), Self::Error> {
+    /// Read from the specified register
+    fn read_regs<'a>(&mut self, reg: u8, data: &mut [u8]) -> Result<(), Self::Error> {
         // Setup register read
         let out_buf: [u8; 1] = [reg as u8 & 0x7F];
         self.wait_busy()?;
@@ -95,12 +91,7 @@ pub trait Hal {
     }
 
     /// Update the specified register with the provided value & mask
-    fn update_reg(
-        &mut self,
-        reg: u8,
-        mask: u8,
-        value: u8,
-    ) -> Result<u8, Self::Error> {
+    fn update_reg(&mut self, reg: u8, mask: u8, value: u8) -> Result<u8, Self::Error> {
         let existing = self.read_reg(reg)?;
         let updated = (existing & !mask) | (value & mask);
         self.write_reg(reg, updated)?;
@@ -109,7 +100,7 @@ pub trait Hal {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature="defmt", derive(defmt::Format))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum HalError<Spi, Pin, Delay> {
     Spi(Spi),
     Pin(Pin),
@@ -117,16 +108,22 @@ pub enum HalError<Spi, Pin, Delay> {
 }
 
 /// Helper SPI trait to tie errors together (no longer required next HAL release)
-pub trait SpiBase: Transfer<u8, Error = <Self as SpiBase>::Error> + Write<u8, Error = <Self as SpiBase>::Error> + Transactional<u8, Error = <Self as SpiBase>::Error> {
+pub trait SpiBase:
+    Transfer<u8, Error = <Self as SpiBase>::Error>
+    + Write<u8, Error = <Self as SpiBase>::Error>
+    + Transactional<u8, Error = <Self as SpiBase>::Error>
+{
     type Error;
 }
 
-impl <T: Transfer<u8, Error = E> + Write<u8, Error = E> + Transactional<u8, Error = E>, E> SpiBase for T {
+impl<T: Transfer<u8, Error = E> + Write<u8, Error = E> + Transactional<u8, Error = E>, E> SpiBase
+    for T
+{
     type Error = E;
 }
 
 /// Spi base object defined interface for interacting with radio via SPI
-pub struct Base <Spi: SpiBase, Cs: OutputPin, Sdn: OutputPin, Delay: DelayUs<u32> + DelayMs<u32>> {
+pub struct Base<Spi: SpiBase, Cs: OutputPin, Sdn: OutputPin, Delay: DelayUs<u32> + DelayMs<u32>> {
     pub spi: Spi,
     pub cs: Cs,
     pub sdn: Sdn,
@@ -138,15 +135,15 @@ impl<Spi, Cs, Sdn, PinError, Delay> Hal for Base<Spi, Cs, Sdn, Delay>
 where
     Spi: SpiBase,
     <Spi as SpiBase>::Error: Debug + 'static,
-    
-    Cs: OutputPin<Error=PinError>,
-    Sdn: OutputPin<Error=PinError>,
+
+    Cs: OutputPin<Error = PinError>,
+    Sdn: OutputPin<Error = PinError>,
     PinError: Debug + 'static,
 
     Delay: DelayUs<u32> + DelayMs<u32>,
     //<Delay as DelayUs>::Error: Debug + 'static,
 {
-    type Error = HalError<<Spi as SpiBase>::Error, PinError, ()/*<Delay as DelayUs>::Error*/>;
+    type Error = HalError<<Spi as SpiBase>::Error, PinError, () /*<Delay as DelayUs>::Error*/>;
 
     /// Reset the radio
     fn reset(&mut self) -> Result<(), Self::Error> {
@@ -202,7 +199,11 @@ where
             write.push(bytes.clone());
         }
 
-        let r = self.spi.write(prefix).map(|_| self.spi.transfer(write.as_mut_slice()).map(|read| data.copy_from_slice(read)));
+        let r = self.spi.write(prefix).map(|_| {
+            self.spi
+                .transfer(write.as_mut_slice())
+                .map(|read| data.copy_from_slice(read))
+        });
 
         self.cs.set_high().map_err(HalError::Pin)?;
 
